@@ -56,7 +56,7 @@ def scroll_to_load_all_results(driver: webdriver.Chrome) -> None:
     while True:
         process_search_results(driver)
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
+        time.sleep(500)
         new_height = driver.execute_script("return document.body.scrollHeight")
         if new_height == last_height:
             break
