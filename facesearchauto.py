@@ -54,6 +54,7 @@ def scroll_to_load_all_results(driver: webdriver.Chrome) -> None:
     """Scroll down the page to load all results."""
     last_height = driver.execute_script("return document.body.scrollHeight")
     while True:
+        process_search_results(driver)
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
         new_height = driver.execute_script("return document.body.scrollHeight")
@@ -205,7 +206,8 @@ def perform_search(search_query: str) -> None:
     time.sleep(5)
 
     if filter_pages(driver):
-        process_search_results(driver)
+        # process_search_results(driver)
+        print(f"Crawling {search_query} ...")
 
     driver.quit()
 
