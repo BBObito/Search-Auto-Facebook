@@ -17,20 +17,15 @@ from PIL import Image
 import keyboard
 import matplotlib.pyplot as plt
 import random
+from selenium.webdriver.common.action_chains import ActionChains
+import pyperclip
 
-# Initialize a global lock object
 lock = Lock()
 set_current_urls = set()
 
-#Initiate current datetime and setup folder for saving
 date_folder = datetime.now().strftime('%Y-%m-%d')
 os.makedirs(f'results/{date_folder}', exist_ok= True)
-# with open(f'results/{date_folder}/newphishingpage.txt', 'w') as file:
-#     file.write('')
-# file.close()
 
-#define chrome driver settings and facebook cookie
-# chrome_driver_path = "D:/chromedriver-win64/chromedriver.exe"  # Replace with your actual chrome driver path
 cookies_file_path = "facebook_cookies.pkl"
 
 
@@ -53,10 +48,11 @@ def load_cookies(driver: webdriver.Chrome, file_path: str) -> None:
 def scroll_to_load_all_results(driver: webdriver.Chrome) -> None:
     """Scroll down the page to load all results."""
     last_height = driver.execute_script("return document.body.scrollHeight")
+    # count = 0
     while True:
         process_search_results(driver)
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(500)
+        time.sleep(2)
         new_height = driver.execute_script("return document.body.scrollHeight")
         if new_height == last_height:
             break
@@ -91,7 +87,6 @@ def filter_pages(driver: webdriver.Chrome) -> bool:
 
         scroll_to_load_all_results(driver)
         click_see_more_buttons(driver)
-        
         return True
     except Exception as e:
         print("Error filtering pages or applying filter:", e)
@@ -117,59 +112,42 @@ def read_url_from_file(file_path: str) -> list[str]:
         print(e)
     return urlist
 
+
 def process_search_results(driver: webdriver.Chrome) -> None:
     """Process the search results and take screenshots of pages."""
-    # save driver to html file
-    # with open(f'results/{date_folder}/search_results.html', 'w', encoding='utf-8') as f:
-    #     f.write(driver.page_source)
-    
-    # time.sleep(5000)
+    try:
+        # Tìm danh sách các bài viết
+        articles = driver.find_elements(By.XPATH, '//span/div/span[1]/span/a')
+        print(f"Total articles found: {len(articles)}")
         
-    articles = driver.find_elements(By.XPATH, '//span/div/span[1]/span/a')
-    
-    file_path = f'results/{date_folder}/newphishingpage.txt'
-    with open(file_path, 'a', encoding='utf-8') as file:
-        for i in range(len(articles)):
-            article = articles[i]
-            try:
-                page_url = article.get_attribute("href")
-                # Ghi URL vào file
-                file.write(page_url + '\n')
-            except Exception as e:
-                print(f"Error processing article: {e}")
-    articles_1 = driver.find_elements(By.XPATH, '//span/div/span[2]/span/a')
-    
-    file_path = f'results/{date_folder}/newphishingpage.txt'
-    with open(file_path, 'a', encoding='utf-8') as file:
-        for i in range(len(articles_1)):
-            article = articles_1[i]
-            try:
-                page_url = article.get_attribute("href")
-                # Ghi URL vào file
-                file.write(page_url + '\n')
-            except Exception as e:
-                print(f"Error processing article: {e}")
+        # Chỉ lấy 3 phần tử cuối cùng
+        last_articles = articles[-3:]
+        print(f"Processing the last {len(last_articles)} articles.")
 
-    # for i, article in enumerate(articles):
-    #     try:
-    #         xpaths = [
-    #             ".//div/span[1]/span/span/a[@href and @role='link']",
-    #             ".//div/span[2]/span/span/a[@href and @role='link']",
-    #             ".//div/span[3]/span/span/a[@href and @role='link']",
-    #         ]
+        file_path = f'results/{date_folder}/newphishingpage.txt'
+        with open(file_path, 'a', encoding='utf-8') as file:
+            for article in last_articles:
+                try:
+                    # Click vào bài viết
+                    article.click()
+                    time.sleep(5)  # Đợi trang tải
+                    
+                    # Lấy URL của bài viết
+                    page_url = article.get_attribute("href")
+                    
+                    # Ghi URL vào file
+                    if page_url:
+                        file.write(page_url + '\n')
+                        print(f"Saved URL: {page_url}")
 
-    #         for xpath in xpaths:
-    #             try:
-    #                 link = article.find_element(By.XPATH, xpath)
-    #                 page_url = link.get_attribute("href")
-    #                 with open(f'results/{date_folder}/newphishingpage.txt', 'a', encoding='utf-8') as file:
-    #                     file.write(page_url + '\n')
-    #             except Exception as e:
-    #                 # Xử lý nếu không tìm thấy phần tử phù hợp
-    #                 print(f"Error finding link with XPath {xpath}: {e}")
+                    # Quay trở lại trang trước đó
+                    driver.back()
+                    time.sleep(2)
+                except Exception as inner_e:
+                    print(f"Error processing article: {inner_e}")
+    except Exception as e:
+        print(f"Error processing search results: {e}")
 
-    #     except Exception as e:
-    #         print(f"Error processing article: {e}")
 
 def perform_search(search_query: str) -> None:
     """Perform a search on Facebook and process the results."""
@@ -177,6 +155,10 @@ def perform_search(search_query: str) -> None:
     chrome_options = Options()
     chrome_options.add_argument("--start-maximized")
     chrome_options.add_argument("--log-level=3")
+    chrome_options.add_argument("--disable-notifications")
+    chrome_options.add_argument("--mute-audio")
+    
+    chrome_options.add_argument("--headless")
     service = Service(log_path = os.devnull)
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
