@@ -70,7 +70,7 @@ def scroll_to_load_all_results(driver: webdriver.Chrome) -> None:
     last_height = driver.execute_script("return document.body.scrollHeight")
     # count = 0
     while True:
-        process_search_results(driver)
+        # process_search_results(driver)
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
         new_height = driver.execute_script("return document.body.scrollHeight")
@@ -119,6 +119,7 @@ def filter_pages(driver: webdriver.Chrome) -> bool:
 
         scroll_to_load_all_results(driver)
         click_see_more_buttons(driver)
+        process_search_results(driver)
         return True
     except Exception as e:
         print("Error filtering pages or applying filter:", e)
@@ -147,8 +148,9 @@ def process_search_results(driver: webdriver.Chrome) -> None:
         articles = driver.find_elements(By.XPATH, '//span/div/span[1]/span/a')
         print(f"Total articles found: {len(articles)}")
         flag = 0
-        last = len(articles) - flag
-        last_articles = articles[-last:]
+        # last = len(articles) - flag
+        last_articles = articles
+        # last_articles = articles[-10:]
         print(f"Processing the last {len(last_articles)} articles.")
 
         file_path = f'results/{date_folder}/newphishingpage.txt'
