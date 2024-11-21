@@ -15,7 +15,7 @@ Dự án này là một script tự động hóa bằng Python sử dụng Selen
 
 - Python 3.x
 - Trình duyệt Google Chrome
-- Selenium 4 không cần chrome driver
+- Selenium 4 không cần chrome driver nhưng lưu ý thiết bị phải có Trình duyệt Google Chrome
 
 ## Cài đặt
 
