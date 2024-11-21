@@ -18,7 +18,11 @@ import keyboard
 import matplotlib.pyplot as plt
 import random
 from selenium.webdriver.common.action_chains import ActionChains
-import pyperclip
+from dotenv import load_dotenv
+load_dotenv()
+email = os.getenv('EMAIL')
+password = os.getenv('PASSWORD')
+
 
 lock = Lock()
 set_current_urls = set()
@@ -172,7 +176,7 @@ def process_search_results(driver: webdriver.Chrome) -> None:
         print(f"Error processing search results: {e}")
 
 
-def perform_search(search_query: str) -> None:
+def perform_search(search_query: str,passwword) -> None:
     """Perform a search on Facebook and process the results."""
 
     chrome_options = Options()
@@ -193,7 +197,7 @@ def perform_search(search_query: str) -> None:
         driver.refresh()
         time.sleep(1)
         time.sleep(random.randint(5, 10))
-        driver.find_element(By.XPATH, '//input[@type="password" and @name="pass"]').send_keys('thacogroup123')
+        driver.find_element(By.XPATH, '//input[@type="password" and @name="pass"]').send_keys(passwword)
         time.sleep(1)
         driver.find_element(By.XPATH, '//input[@value="Continue" and @type="submit"]').click()
         time.sleep(random.randint(5, 10))
@@ -278,8 +282,8 @@ def get_cookies():
             print("Cookies doesn't exist, require email and password to login.")
             email = input('Email: ')
             password = input('Password: ')
-            print(email)
-            print(password)
+            # print(email)
+            # print(password)
             email_input = driver.find_element(By.ID, "email")
             password_input = driver.find_element(By.ID, "pass")
 
@@ -297,5 +301,6 @@ def get_cookies():
 
 
 if __name__ == "__main__":
+    
     check_login()
     search()
