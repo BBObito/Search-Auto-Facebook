@@ -30,13 +30,27 @@ cookies_file_path = "facebook_cookies.pkl"
 
 
 def save_cookies(driver: webdriver.Chrome, file_path: str) -> None:
-    """Save cookies to a file."""
+    """
+    Chức năng này sẽ lưu cookies vào file.
+    Args:
+        driver (webdriver.Chrome): Đối tượng driver.
+        file_path (str): Đường dẫn file để lưu cookies
+    Returns:
+        None
+    """
     cookies = driver.get_cookies()
     with open(file_path, 'wb') as file:
         pickle.dump(cookies, file)
 
 def load_cookies(driver: webdriver.Chrome, file_path: str) -> None:
-    """Load cookies from a file."""
+    """
+    Chức năng này sẽ load cookies từ file.
+    Args:
+        driver (webdriver.Chrome): Đối tượng driver.
+        file_path (str): Đường dẫn file chứa cookies
+    Returns:
+        None
+    """
     try:
         with open(file_path, 'rb') as file:
             cookies = pickle.load(file)
@@ -46,7 +60,13 @@ def load_cookies(driver: webdriver.Chrome, file_path: str) -> None:
         print(f"No cookies found at {file_path}")
 
 def scroll_to_load_all_results(driver: webdriver.Chrome) -> None:
-    """Scroll down the page to load all results."""
+    """
+    Cuộn trang để tải tất cả kết quả.
+    Args:
+        driver (webdriver.Chrome): Đối tượng driver.
+    Returns:
+        None
+    """
     last_height = driver.execute_script("return document.body.scrollHeight")
     # count = 0
     while True:
@@ -59,7 +79,13 @@ def scroll_to_load_all_results(driver: webdriver.Chrome) -> None:
         last_height = new_height
 
 def click_see_more_buttons(driver: webdriver.Chrome) -> None:
-    """Click on 'See More' buttons to reveal additional content."""
+    """
+    Click vào các nút 'See More' để tải thêm kết quả.
+    Args:
+        driver (webdriver.Chrome): Đối tượng driver.
+    Returns:
+        None
+    """
     while True:
         try:
             see_more_button = WebDriverWait(driver, 10).until(
@@ -72,7 +98,13 @@ def click_see_more_buttons(driver: webdriver.Chrome) -> None:
             break
 
 def filter_pages(driver: webdriver.Chrome) -> bool:
-    """Apply the 'Pages' filter to the search results."""
+    """
+    Lọc kết quả tìm kiếm để chỉ hiển thị bài viết gần đây nhất.
+    Args:
+        driver (webdriver.Chrome): Đối tượng driver.
+    Returns:
+        bool: True nếu lọc thành công, ngược lại False.    
+    """
 
     try:
         pages_filter = WebDriverWait(driver, 10).until(
@@ -94,7 +126,13 @@ def filter_pages(driver: webdriver.Chrome) -> bool:
 
 def save_url_to_file(path: str, url: str, mode: str) -> None:
     """ 
-        Save a URL to a file in a thread-safe way.
+    Lưu URL vào file.
+    Args:
+        path (str): Đường dẫn file.
+        url (str): URL cần lưu.
+        mode (str): Chế độ ghi file.
+    Returns:
+        None
     """
     try:
         with open(path, mode, encoding='utf-8') as f:
@@ -102,49 +140,32 @@ def save_url_to_file(path: str, url: str, mode: str) -> None:
     except Exception as e:
         print(e)
 
-def read_url_from_file(file_path: str) -> list[str]:
-    """Read URLs from a file and return them as a list."""
-    urlist = []
-    try:
-        with open(file_path, 'r', encoding='utf-8') as file:
-            urlist = [line.strip() for line in file]
-    except Exception as e:
-        print(e)
-    return urlist
-
 
 def process_search_results(driver: webdriver.Chrome) -> None:
     """Process the search results and take screenshots of pages."""
     try:
-        # Tìm danh sách các bài viết
         articles = driver.find_elements(By.XPATH, '//span/div/span[1]/span/a')
         print(f"Total articles found: {len(articles)}")
-        
-        # Chỉ lấy 3 phần tử cuối cùng
-        last_articles = articles[-3:]
+        flag = 0
+        last = len(articles) - flag
+        last_articles = articles[-last:]
         print(f"Processing the last {len(last_articles)} articles.")
 
         file_path = f'results/{date_folder}/newphishingpage.txt'
         with open(file_path, 'a', encoding='utf-8') as file:
             for article in last_articles:
                 try:
-                    # Click vào bài viết
                     article.click()
-                    time.sleep(5)  # Đợi trang tải
-                    
-                    # Lấy URL của bài viết
+                    time.sleep(5)
                     page_url = article.get_attribute("href")
-                    
-                    # Ghi URL vào file
                     if page_url:
                         file.write(page_url + '\n')
                         print(f"Saved URL: {page_url}")
-
-                    # Quay trở lại trang trước đó
                     driver.back()
                     time.sleep(2)
                 except Exception as inner_e:
                     print(f"Error processing article: {inner_e}")
+        flag = len(articles)
     except Exception as e:
         print(f"Error processing search results: {e}")
 
@@ -188,13 +209,16 @@ def perform_search(search_query: str) -> None:
     time.sleep(5)
 
     if filter_pages(driver):
-        # process_search_results(driver)
         print(f"Crawling {search_query} ...")
 
     driver.quit()
 
 def search() -> None:
-    """Main function to execute the search queries in separate threads."""
+    """
+    Đọc các từ khóa từ file và thực hiện tìm kiếm.
+    Returns:
+        None
+    """
     
     search_queries = []
     try:
@@ -215,14 +239,18 @@ def search() -> None:
 
 def check_login():
     """
-        check whether cookies for login is on current path.
+    Kiểm tra xem đã đăng nhập vào Facebook chưa.
+    Returns:
+        None
     """
     if not os.path.exists('facebook_cookies.pkl'):
         get_cookies()
 
 def get_cookies():
     """
-        get facebook cookies for automatically login.
+    Lấy cookies từ Facebook.
+    Returns:
+        None
     """
     chrome_options = Options()
     chrome_options.add_argument("--start-maximized")
