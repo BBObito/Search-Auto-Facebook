@@ -5,23 +5,18 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from utils import logger
 import time
 import pickle
-import re
 import os
 import sys
 import threading
 from datetime import datetime
 from threading import Lock
-from PIL import Image
-import keyboard
-import matplotlib.pyplot as plt
 import random
-from selenium.webdriver.common.action_chains import ActionChains
 from dotenv import load_dotenv
 load_dotenv()
-email = os.getenv('EMAIL')
-password = os.getenv('PASSWORD')
+
 
 
 lock = Lock()
@@ -61,7 +56,7 @@ def load_cookies(driver: webdriver.Chrome, file_path: str) -> None:
             for cookie in cookies:
                 driver.add_cookie(cookie)
     except FileNotFoundError:
-        print(f"No cookies found at {file_path}")
+        logger.logger('logs/error.log', f"No cookies found at {file_path}")
 
 def scroll_to_load_all_results(driver: webdriver.Chrome) -> None:
     """
@@ -72,9 +67,8 @@ def scroll_to_load_all_results(driver: webdriver.Chrome) -> None:
         None
     """
     last_height = driver.execute_script("return document.body.scrollHeight")
-    # count = 0
+    
     while True:
-        # process_search_results(driver)
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
         new_height = driver.execute_script("return document.body.scrollHeight")
@@ -98,7 +92,7 @@ def click_see_more_buttons(driver: webdriver.Chrome) -> None:
             see_more_button.click()
             time.sleep(2)
         except Exception as e:
-            print("No more 'See More' buttons found or error occurred:", e)
+            logger.logger('logs/error.log', f"No more 'See More' buttons found or error occurred: {e}")
             break
 
 def filter_pages(driver: webdriver.Chrome) -> bool:
@@ -126,38 +120,22 @@ def filter_pages(driver: webdriver.Chrome) -> bool:
         process_search_results(driver)
         return True
     except Exception as e:
-        print("Error filtering pages or applying filter:", e)
+        logger.logger('logs/error.log', f"Error filtering pages or applying filter: {e}")
         return False
 
-def save_url_to_file(path: str, url: str, mode: str) -> None:
-    """ 
-    Lưu URL vào file.
+def process_search_results(driver: webdriver.Chrome) -> None:
+    """
+    Xử lý kết quả tìm kiếm.
     Args:
-        path (str): Đường dẫn file.
-        url (str): URL cần lưu.
-        mode (str): Chế độ ghi file.
+        driver (webdriver.Chrome): Đối tượng driver.
     Returns:
         None
     """
     try:
-        with open(path, mode, encoding='utf-8') as f:
-            f.write(url + '\n')
-    except Exception as e:
-        print(e)
+        last_articles = driver.find_elements(By.XPATH, '//span/div/span[1]/span/a')
+        logger.logger('logs/info.log', f"Total articles found: {len(last_articles)}")
 
-
-def process_search_results(driver: webdriver.Chrome) -> None:
-    """Process the search results and take screenshots of pages."""
-    try:
-        articles = driver.find_elements(By.XPATH, '//span/div/span[1]/span/a')
-        print(f"Total articles found: {len(articles)}")
-        flag = 0
-        # last = len(articles) - flag
-        last_articles = articles
-        # last_articles = articles[-10:]
-        print(f"Processing the last {len(last_articles)} articles.")
-
-        file_path = f'results/{date_folder}/newphishingpage.txt'
+        file_path = f'results/{date_folder}/list-url.txt'
         with open(file_path, 'a', encoding='utf-8') as file:
             for article in last_articles:
                 try:
@@ -170,13 +148,13 @@ def process_search_results(driver: webdriver.Chrome) -> None:
                     driver.back()
                     time.sleep(2)
                 except Exception as inner_e:
-                    print(f"Error processing article: {inner_e}")
-        flag = len(articles)
+                    logger.logger('logs/error.log', f"Error processing article: {inner_e}")
+                    continue
     except Exception as e:
-        print(f"Error processing search results: {e}")
+        logger.logger('logs/error.log', f"Error processing search results: {e}")
 
 
-def perform_search(search_query: str,passwword) -> None:
+def perform_search(search_query: str,passwword: str) -> None:
     """Perform a search on Facebook and process the results."""
 
     chrome_options = Options()
@@ -185,7 +163,7 @@ def perform_search(search_query: str,passwword) -> None:
     chrome_options.add_argument("--disable-notifications")
     chrome_options.add_argument("--mute-audio")
     
-    chrome_options.add_argument("--headless")
+    # chrome_options.add_argument("--headless")
     service = Service(log_path = os.devnull)
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
@@ -203,7 +181,7 @@ def perform_search(search_query: str,passwword) -> None:
         time.sleep(random.randint(5, 10))
 
     except Exception as e:
-        print(f"Error during login: {e}")
+        logger.logger('logs/error.log', f"Error during login: {e}")
         driver.quit()
         return
 
@@ -215,11 +193,11 @@ def perform_search(search_query: str,passwword) -> None:
     time.sleep(5)
 
     if filter_pages(driver):
-        print(f"Crawling {search_query} ...")
+        logger.logger('logs/info.log', f"Crawling {search_query} ...")
 
     driver.quit()
 
-def search() -> None:
+def search(password: str) -> None:
     """
     Đọc các từ khóa từ file và thực hiện tìm kiếm.
     Returns:
@@ -231,28 +209,28 @@ def search() -> None:
         with open('search_queries.txt', 'r', encoding='utf-8') as f:
             search_queries = [line.strip() for line in f if line.strip()]
     except FileNotFoundError:
-        print("search_queries.txt not found")
+        logger.logger('logs/error.log', "search_queries.txt not found")
         sys.exit(1)
 
     threads = []
     for query in search_queries:
-        thread = threading.Thread(target=perform_search, args=(query,))
+        thread = threading.Thread(target=perform_search, args=(query,password))
         threads.append(thread)
         thread.start()
 
     for thread in threads:
         thread.join()
 
-def check_login():
+def check_login(email, password):
     """
     Kiểm tra xem đã đăng nhập vào Facebook chưa.
     Returns:
         None
     """
     if not os.path.exists('facebook_cookies.pkl'):
-        get_cookies()
+        get_cookies(email=email, password=password)
 
-def get_cookies():
+def get_cookies(email: str, password: str):
     """
     Lấy cookies từ Facebook.
     Returns:
@@ -280,10 +258,6 @@ def get_cookies():
         
         if login_button_present:
             print("Cookies doesn't exist, require email and password to login.")
-            email = input('Email: ')
-            password = input('Password: ')
-            # print(email)
-            # print(password)
             email_input = driver.find_element(By.ID, "email")
             password_input = driver.find_element(By.ID, "pass")
 
@@ -295,12 +269,18 @@ def get_cookies():
             save_cookies(driver, cookies_file_path)
 
     except Exception as e:
-        print(f"Error during login: {e}")
+        logger.logger('logs/error.log', f"Error during login: {e}")
         driver.quit()
         return
 
 
 if __name__ == "__main__":
-    
-    check_login()
-    search()
+    # time start
+    start_time = time.time()
+    email = os.getenv('EMAIL')
+    password = os.getenv('PASSWORD')
+    check_login(email, password)
+    search(password=password)
+    # time end
+    end_time = time.time()
+    logger.logger('logs/info.log', f"Execution time: {end_time - start_time} seconds")
