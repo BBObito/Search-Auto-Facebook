@@ -82,7 +82,7 @@ Script sẽ thực hiện:
 > [!CHÚ Ý]
 > Không đảm bảo mã sạch hoặc đã kiểm tra bảo mật. Đây là repo chỉ dành cho mục đích giáo dục. Không sử dụng vào mục đích bất hợp pháp. Tôi không chịu trách nhiệm với bất kỳ hành động sử dụng trái phép nào. Chỉ sử dụng cho mục đích học tập!
 
-## Ủng hộ tôi (tùy chọn)
+## Contact (tùy chọn)
 
 Nếu bạn có thắc mắc gì liên hệ mail:
 - ky.tran1752003@gmail.com
