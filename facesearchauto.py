@@ -28,7 +28,7 @@ os.makedirs(f'results/{date_folder}', exist_ok= True)
 cookies_file_path = "facebook_cookies.pkl"
 
 
-def save_cookies(driver: webdriver.Chrome, file_path: str) -> None:
+def save_cookies(driver: webdriver.Chrome, file_path) -> None:
     """
     Chức năng này sẽ lưu cookies vào file.
     Args:
@@ -41,7 +41,7 @@ def save_cookies(driver: webdriver.Chrome, file_path: str) -> None:
     with open(file_path, 'wb') as file:
         pickle.dump(cookies, file)
 
-def load_cookies(driver: webdriver.Chrome, file_path: str) -> None:
+def load_cookies(driver: webdriver.Chrome, file_path) -> None:
     """
     Chức năng này sẽ load cookies từ file.
     Args:
@@ -103,7 +103,7 @@ def filter_pages(driver: webdriver.Chrome) -> bool:
     Returns:
         bool: True nếu lọc thành công, ngược lại False.    
     """
-
+    # time.sleep(500)
     try:
         pages_filter = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.XPATH, "//span[contains(text(), 'Posts')]"))
@@ -114,7 +114,6 @@ def filter_pages(driver: webdriver.Chrome) -> bool:
             EC.element_to_be_clickable((By.XPATH, '//input[@aria-label="Recent Posts" and @type="checkbox" and @role="switch" and @aria-checked="false"]'))
         )
         recent_posts.click()
-
         scroll_to_load_all_results(driver)
         click_see_more_buttons(driver)
         process_search_results(driver)
@@ -144,7 +143,7 @@ def process_search_results(driver: webdriver.Chrome) -> None:
                     page_url = article.get_attribute("href")
                     if page_url:
                         file.write(page_url + '\n')
-                        print(f"Saved URL: {page_url}")
+                        logger.logger('logs/info.log', f"Saved URL: {page_url}")
                     driver.back()
                     time.sleep(2)
                 except Exception as inner_e:
@@ -154,7 +153,7 @@ def process_search_results(driver: webdriver.Chrome) -> None:
         logger.logger('logs/error.log', f"Error processing search results: {e}")
 
 
-def perform_search(search_query: str,passwword: str) -> None:
+def perform_search(search_query,passwword) -> None:
     """Perform a search on Facebook and process the results."""
 
     chrome_options = Options()
@@ -163,7 +162,7 @@ def perform_search(search_query: str,passwword: str) -> None:
     chrome_options.add_argument("--disable-notifications")
     chrome_options.add_argument("--mute-audio")
     
-    # chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--headless")
     service = Service(log_path = os.devnull)
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
@@ -174,11 +173,11 @@ def perform_search(search_query: str,passwword: str) -> None:
         load_cookies(driver, cookies_file_path)
         driver.refresh()
         time.sleep(1)
-        time.sleep(random.randint(5, 10))
+        # time.sleep(random.randint(5, 10))
         driver.find_element(By.XPATH, '//input[@type="password" and @name="pass"]').send_keys(passwword)
         time.sleep(1)
         driver.find_element(By.XPATH, '//input[@value="Continue" and @type="submit"]').click()
-        time.sleep(random.randint(5, 10))
+        # time.sleep(random.randint(5, 10))
 
     except Exception as e:
         logger.logger('logs/error.log', f"Error during login: {e}")
@@ -197,7 +196,7 @@ def perform_search(search_query: str,passwword: str) -> None:
 
     driver.quit()
 
-def search(password: str) -> None:
+def search(password) -> None:
     """
     Đọc các từ khóa từ file và thực hiện tìm kiếm.
     Returns:
@@ -230,7 +229,7 @@ def check_login(email, password):
     if not os.path.exists('facebook_cookies.pkl'):
         get_cookies(email=email, password=password)
 
-def get_cookies(email: str, password: str):
+def get_cookies(email, password):
     """
     Lấy cookies từ Facebook.
     Returns:
