@@ -14,6 +14,7 @@ import threading
 from datetime import datetime
 from threading import Lock
 import random
+from selenium.webdriver.common.action_chains import ActionChains
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -60,22 +61,113 @@ def load_cookies(driver: webdriver.Chrome, file_path) -> None:
 
 def scroll_to_load_all_results(driver: webdriver.Chrome) -> None:
     """
-    Cuộn trang để tải tất cả kết quả.
+    Cuộn trang để tải tất cả kết quả, kiểm tra liên tiếp 10 lần nếu chiều cao không đổi mới dừng.
     Args:
         driver (webdriver.Chrome): Đối tượng driver.
     Returns:
         None
     """
+    import time
+
     last_height = driver.execute_script("return document.body.scrollHeight")
+    unchanged_count = 0  # Đếm số lần liên tiếp chiều cao không đổi
     
     while True:
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
         new_height = driver.execute_script("return document.body.scrollHeight")
+        
         if new_height == last_height:
+            unchanged_count += 1
+        else:
+            unchanged_count = 0  # Reset nếu chiều cao thay đổi
+        
+        if unchanged_count >= 10:  # Dừng khi không đổi liên tiếp 10 lần
             break
+        
         last_height = new_height
 
+def scroll_and_process_results(driver: webdriver.Chrome) -> None:
+    """
+    Cuộn trang để tải kết quả và xử lý bài viết trong quá trình cuộn.
+    Args:
+        driver (webdriver.Chrome): Đối tượng driver.
+    Returns:
+        None
+    """
+
+    import os
+    import time
+
+    processed_articles = set()  # Bộ lưu trữ URL đã xử lý
+    last_height = driver.execute_script("return document.body.scrollHeight")
+    unchanged_count = 0  # Đếm số lần liên tiếp chiều cao không đổi
+    date_folder = "2024-11-22"  # Tự chỉnh theo ngày thực tế
+    file_path = f'results/{date_folder}/list-url.txt'
+    articles_file_path = f'results/{date_folder}/list-articles.txt'
+
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    if os.path.exists(articles_file_path):
+        with open(articles_file_path, 'r', encoding='utf-8') as afile:
+            processed_articles.update(line.strip() for line in afile.readlines())
+
+    with open(file_path, 'a', encoding='utf-8') as file, \
+            open(articles_file_path, 'a', encoding='utf-8') as articles_file:
+        while True:
+            articles = driver.find_elements(By.XPATH, '//span/div/span[1]/span/a')
+            logger.logger('logs/info.log', f"Found {len(articles)} articles on current view.")
+
+            articles = [article for article in articles if article.get_attribute("href") not in processed_articles]
+
+            for article in articles:
+                try:
+                    article_url = article.get_attribute("href")
+                    if not article_url:
+                        continue
+                    
+                    articles_file.write(article_url + '\n')
+                    articles_file.flush()
+                    processed_articles.add(article_url)
+
+                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", article)
+                    # WebDriverWait(driver, 10).until(EC.element_to_be_clickable(article))
+                    # ActionChains(driver).move_to_element(article).click().perform()
+                    # clicck article
+                    article.click()
+                    time.sleep(1)  
+
+                    current_url = driver.current_url
+                    if current_url and current_url not in processed_articles:
+                        file.write(current_url + '\n')
+                        file.flush()
+                        processed_articles.add(current_url)
+                        logger.logger('logs/info.log', f"Processed and saved URL: {current_url}")
+
+                    driver.back()
+                    # time.sleep(2)
+
+                except Exception as e:
+                    logger.logger('logs/error.log', f"Error processing article: {e}")
+                    # driver.back()
+                    # time.sleep(2)
+                    continue
+
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(2)
+            new_height = driver.execute_script("return document.body.scrollHeight")
+
+            if new_height == last_height:
+                unchanged_count += 1
+            else:
+                unchanged_count = 0  #
+
+            if unchanged_count >= 10:
+                logger.logger('logs/info.log', "No new content detected. Stopping scroll.")
+                break
+
+            last_height = new_height
+            
 def click_see_more_buttons(driver: webdriver.Chrome) -> None:
     """
     Click vào các nút 'See More' để tải thêm kết quả.
@@ -114,9 +206,11 @@ def filter_pages(driver: webdriver.Chrome) -> bool:
             EC.element_to_be_clickable((By.XPATH, '//input[@aria-label="Recent Posts" and @type="checkbox" and @role="switch" and @aria-checked="false"]'))
         )
         recent_posts.click()
-        scroll_to_load_all_results(driver)
-        click_see_more_buttons(driver)
-        process_search_results(driver)
+        
+        # scroll_to_load_all_results(driver)
+        # click_see_more_buttons(driver)
+        # process_search_results(driver)
+        scroll_and_process_results(driver)
         return True
     except Exception as e:
         logger.logger('logs/error.log', f"Error filtering pages or applying filter: {e}")
@@ -130,27 +224,26 @@ def process_search_results(driver: webdriver.Chrome) -> None:
     Returns:
         None
     """
-    try:
-        last_articles = driver.find_elements(By.XPATH, '//span/div/span[1]/span/a')
-        logger.logger('logs/info.log', f"Total articles found: {len(last_articles)}")
+    
+    last_articles = driver.find_elements(By.XPATH, '//span/div/span[1]/span/a')
+    logger.logger('logs/info.log', f"Total articles found: {len(last_articles)}")
 
-        file_path = f'results/{date_folder}/list-url.txt'
-        with open(file_path, 'a', encoding='utf-8') as file:
-            for article in last_articles:
-                try:
-                    article.click()
-                    time.sleep(5)
-                    page_url = article.get_attribute("href")
-                    if page_url:
-                        file.write(page_url + '\n')
-                        logger.logger('logs/info.log', f"Saved URL: {page_url}")
-                    driver.back()
-                    time.sleep(2)
-                except Exception as inner_e:
-                    logger.logger('logs/error.log', f"Error processing article: {inner_e}")
-                    continue
-    except Exception as e:
-        logger.logger('logs/error.log', f"Error processing search results: {e}")
+    file_path = f'results/{date_folder}/list-url.txt'
+    with open(file_path, 'a', encoding='utf-8') as file:
+        for article in last_articles:
+            try:
+                article.click()
+                time.sleep(5)
+                page_url = article.get_attribute("href")
+                if page_url:
+                    file.write(page_url + '\n')
+                    logger.logger('logs/info.log', f"Saved URL: {page_url}")
+                driver.back()
+                time.sleep(2)
+            except Exception as inner_e:
+                logger.logger('logs/error.log', f"Error processing article: {inner_e}")
+                continue
+
 
 
 def perform_search(search_query,passwword) -> None:
@@ -161,8 +254,9 @@ def perform_search(search_query,passwword) -> None:
     chrome_options.add_argument("--log-level=3")
     chrome_options.add_argument("--disable-notifications")
     chrome_options.add_argument("--mute-audio")
-    
-    chrome_options.add_argument("--headless")
+    # chrome_options.add_argument("--force-device-scale-factor=0.25")    
+    # chrome_options.add_argument("--headless")
+
     service = Service(log_path = os.devnull)
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
@@ -173,11 +267,9 @@ def perform_search(search_query,passwword) -> None:
         load_cookies(driver, cookies_file_path)
         driver.refresh()
         time.sleep(1)
-        # time.sleep(random.randint(5, 10))
         driver.find_element(By.XPATH, '//input[@type="password" and @name="pass"]').send_keys(passwword)
         time.sleep(1)
         driver.find_element(By.XPATH, '//input[@value="Continue" and @type="submit"]').click()
-        # time.sleep(random.randint(5, 10))
 
     except Exception as e:
         logger.logger('logs/error.log', f"Error during login: {e}")
@@ -238,6 +330,10 @@ def get_cookies(email, password):
     chrome_options = Options()
     chrome_options.add_argument("--start-maximized")
     chrome_options.add_argument("--log-level=3")
+    chrome_options.add_argument("--disable-notifications")
+    chrome_options.add_argument("--mute-audio")
+    chrome_options.add_argument("--headless")
+    
     service = Service(log_path = os.devnull)
     driver = webdriver.Chrome(service=service, options=chrome_options)
     try:
