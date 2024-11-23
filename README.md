@@ -22,7 +22,7 @@ Dự án này là một script tự động hóa bằng Python sử dụng Selen
 1. **Clone kho lưu trữ**:
 
 ```bash
-git clone https://github.com/BBObito/Search-Auto-Facebook.git
+git clone https://github.com/ifobito/Search-Auto-Facebook.git
 cd Search-Auto-Facebook
 ```
 
