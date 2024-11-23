@@ -1,0 +1,16 @@
+services:
+  core-api:
+    container_name: core-api
+    build: ./api
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    ports:
+      - 8033:8000
+    volumes:
+      - ./api:/app
+    restart: always
+
+  cloudflare:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflare
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token $CLOUDFLARE_TOKEN
