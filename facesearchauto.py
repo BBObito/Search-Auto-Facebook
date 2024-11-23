@@ -88,9 +88,9 @@ def scroll_to_load_all_results(driver: webdriver.Chrome) -> None:
             break
         
         last_height = new_height
-        count_stop += 1
-        if count_stop >= 50:
-            break
+        # count_stop += 1
+        # if count_stop >= 50:
+        #     break
 
 def check_duplicate_urls():
     file_path = f'results/{date_folder}/list-url.txt'
@@ -267,8 +267,8 @@ def perform_search(search_query,passwword) -> None:
 
     except Exception as e:
         logger.logger('logs/error.log', f"Error during login: {e}")
-        driver.quit()
-        return
+        # driver.quit()
+        # return
 
     search_box = WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.XPATH, "//input[@type='search']"))
