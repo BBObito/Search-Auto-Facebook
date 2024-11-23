@@ -88,9 +88,9 @@ def scroll_to_load_all_results(driver: webdriver.Chrome) -> None:
             break
         
         last_height = new_height
-        # count_stop += 1
-        # if count_stop >= 10:
-        #     break
+        count_stop += 1
+        if count_stop >= 50:
+            break
 
 def check_duplicate_urls():
     # Lấy ngày hiện tại để tạo đường dẫn đúng (nếu cần)
