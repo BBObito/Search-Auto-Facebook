@@ -246,7 +246,11 @@ def perform_search(search_query,passwword,stop_k) -> None:
     
 def check_login(email, password):
     """
-    Kiểm tra xem đã đăng nhập vào Facebook chưa.
+    Kiểm tra xem file cookies có tồn tại không, nếu có thì kiểm tra thời gian tạo file, nếu lớn hơn 2h thì xóa file.
+    Kiểm tra xem file cookies có tồn tại không, nếu không thì lấy cookies từ Facebook.
+    Args:
+        email (str): Email của người dùng.
+        password (str): Mật khẩu của người dùng.
     Returns:
         None
     """
@@ -318,5 +322,5 @@ if __name__ == "__main__":
     email = os.getenv('EMAIL')
     password = os.getenv('PASSWORD')
     check_login(email, password)
-    search("hieuthuhai",password,stop_k=5)
+    perform_search("hieuthuhai",password,stop_k=5)
 
