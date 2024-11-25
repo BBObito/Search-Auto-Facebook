@@ -19,9 +19,7 @@ load_dotenv()
 
 lock = Lock()
 set_current_urls = set()
-
-date_folder = datetime.now().strftime('%Y-%m-%d')
-os.makedirs(f'results/{date_folder}', exist_ok= True)
+os.makedirs(f'results', exist_ok= True)
 
 cookies_file_path = "facebook_cookies.pkl"
 
@@ -90,7 +88,7 @@ def scroll_to_load_all_results(driver: webdriver.Chrome, stop_k) -> None:
             break
 
 def check_duplicate_urls():
-    file_path = f'results/{date_folder}/list-url.txt'
+    file_path = f'results/list-url.txt'
     delete_url_false = "https://www.facebook.com/search/posts?"
 
     if not os.path.exists(file_path):
@@ -112,12 +110,9 @@ def check_duplicate_urls():
             continue
         if url and url not in processed_urls:
             processed_urls.append(url)
-
-    with open(file_path, 'w', encoding='utf-8') as file:
-        file.write("\n".join(processed_urls))
-
-    logger.logger('logs/info.log', f"Số lượng URL đã xóa: {removed_count}")
-    logger.logger('logs/info.log', f"Tổng số URL còn lại: {len(processed_urls)}")
+            
+    urls_dict = {url: url for url in processed_urls}
+    return urls_dict
 
 def get_element_coordinates(driver: webdriver.Chrome):
     """
@@ -162,7 +157,11 @@ def get_element_coordinates(driver: webdriver.Chrome):
             except Exception as e:
                 logger.logger('logs/error.log', f"Failed to process element {i}: {e}")
 
-        file_path = f'results/{date_folder}/list-url.txt'
+        file_path = f'results/list-url.txt'
+    
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
         with open(file_path, 'a', encoding='utf-8') as file:
@@ -194,11 +193,11 @@ def filter_pages(driver: webdriver.Chrome, stop_k: int) -> bool:
         
         
         scroll_to_load_all_results(driver,stop_k=stop_k)
-        check_duplicate_urls()
-        return True
+        
+        return check_duplicate_urls()
     except Exception as e:
         logger.logger('logs/error.log', f"Error filtering pages or applying filter: {e}")
-        return False
+        return None
 
 def perform_search(search_query,passwword,stop_k) -> None:
     """Perform a search on Facebook and process the results."""
@@ -208,9 +207,9 @@ def perform_search(search_query,passwword,stop_k) -> None:
     chrome_options.add_argument("--log-level=3")
     chrome_options.add_argument("--disable-notifications")
     chrome_options.add_argument("--mute-audio")
-    chrome_options.add_argument("--window-size=1900,1080")
+    # chrome_options.add_argument("--window-size=1900,1080")
     
-    # chrome_options.add_argument("--force-device-scale-factor=0.25")    
+    chrome_options.add_argument("--force-device-scale-factor=0.25")    
     chrome_options.add_argument("--headless")
 
     service = Service(log_path = os.devnull)
@@ -317,10 +316,11 @@ def get_cookies(email, password):
         driver.quit()
         return
 
-
-if __name__ == "__main__":
+def main(qerry):
     email = os.getenv('EMAIL')
     password = os.getenv('PASSWORD')
     check_login(email, password)
-    perform_search("hieuthuhai",password,stop_k=5)
+    perform_search(qerry,password,stop_k=5)
 
+if __name__ == "__main__":
+    main("sơn tùng m-tp")
